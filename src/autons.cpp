@@ -5,9 +5,9 @@
 /////
 
 // These are out of 127
-const int DRIVE_SPEED = 110;
-const int TURN_SPEED = 90;
-const int SWING_SPEED = 90;
+const int DRIVE_SPEED = 120;
+const int TURN_SPEED = 120;
+const int SWING_SPEED = 120;
 
 ///
 // Constants
@@ -38,7 +38,7 @@ void drive_example() {
   // The third parameter is a boolean (true or false) for enabling/disabling a slew at the start of drive motions
   // for slew, only enable it when the drive distance is greater than the slew distance + a few inches
 
-  chassis.pid_drive_set(24_in, DRIVE_SPEED, true);
+  chassis.pid_drive_set(20_in, DRIVE_SPEED, true);
   chassis.pid_wait();
 
   chassis.pid_drive_set(-12_in, DRIVE_SPEED);
@@ -48,7 +48,7 @@ void drive_example() {
   chassis.pid_wait();
 }
 
-///
+///I understand it now
 // Turn Example
 ///
 void turn_example() {

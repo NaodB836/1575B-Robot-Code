@@ -3,8 +3,8 @@
 // Chassis constructor
 ez::Drive chassis(
     // These are your drive motors, the first motor is used for sensing!
-    {1, 2, -3},     // Left Chassis Ports (negative port will reverse it!)
-    {-1l, 12, -13},  // Right Chassis Ports (negative port will reverse it!)
+    {-1, -2, 3},     // Left Chassis Ports (negative port will reverse it!)
+    {1l, -12, 13},  // Right Chassis Ports (negative port will reverse it!)
 
     7,      // IMU Port
     2.75,  // Wheel Diameter (Remember, 4" wheels without screw holes are actually 4.125!)
@@ -129,12 +129,12 @@ void opcontrol() {
     }
     if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
 
-      intakeMotor.move(1000); // Set intake motor to full speed forward
+      intakeMotor.move_velocity(3000); // Set intake motor to full speed forward
 
     } 
     else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
 
-      intakeMotor.move(-1000); // Set intake motor to full speed backward
+      intakeMotor.move_velocity(-3000); // Set intake motor to full speed backward
 
     } 
     

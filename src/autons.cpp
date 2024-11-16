@@ -221,3 +221,27 @@ void interfered_example() {
 // . . .
 // Make your own autonomous functions here!
 // . . .
+
+void blue_Right_Side() {
+
+  chassis.pid_drive_set(10_in, DRIVE_SPEED, true);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-30_in, DRIVE_SPEED, true);
+  chassis.pid_wait();
+  Clamper.set_value(1);
+  chassis.pid_turn_set(110_deg, TURN_SPEED);
+  chassis.pid_wait();
+  chassis.pid_drive_set(15_in, DRIVE_SPEED, true);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-8_in, DRIVE_SPEED, true);
+  chassis.pid_wait();
+  chassis.pid_turn_set(90_deg, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_drive_set(10_in, DRIVE_SPEED, true);
+  intakeMotor.move_velocity(3000);
+  
+  pros::delay(3000);
+  chassis.pid_wait();
+
+
+}

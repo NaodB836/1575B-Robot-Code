@@ -5,7 +5,7 @@
 // Your motors, sensors, etc. should go here.  Below are examples
 
 inline pros::Motor intakeMotor(15);
-inline pros::Motor wallStakeMotor(6);
+inline pros::MotorGroup wallStake({20,-6});
 inline pros::adi::DigitalOut Clamper('A');
 inline pros::adi::DigitalOut Color_sorter('B');
 inline pros::adi::DigitalOut rachet('C');

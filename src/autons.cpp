@@ -222,8 +222,56 @@ void interfered_example() {
 // Make your own autonomous functions here!
 // . . .
 
-void blue_Right_Side() {
+void blue_Left_Side() {
 
+  chassis.pid_drive_set(16_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  wallStake.move_velocity(2300);
+  pros::delay(500);
+  wallStake.move_velocity(-2300);
+  pros::delay(500);
+  wallStake.move_velocity(0);
+  chassis.pid_drive_set(-44_in, 60);
+  chassis.pid_wait();
+  pros::delay(500);
+  Clamper.set_value(1);
+  pros::delay(500);
+  chassis.pid_wait();
+  chassis.pid_turn_set(115_deg, 90);
+  chassis.pid_wait();
+  chassis.pid_drive_set(25_in, 100);
+  intakeMotor.move_velocity(3000);
+  pros::delay(2000);
+  intakeMotor.move_velocity(0);
+
+  
+}
+  /*
+  intakeMotor.move_velocity(3000);
+  pros::delay(800);
+  intakeMotor.move_velocity(0);
+  chassis.pid_wait();
+  chassis.pid_drive_set(30_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_turn_set(90_deg, TURN_SPEED);
+  chassis.pid_wait();
+  wallStakeMotor.move_velocity(-3000);
+  pros::delay(1500);
+  wallStakeMotor.move_velocity(0);
+  chassis.pid_drive_set(10_in, DRIVE_SPEED, true);
+  chassis.pid_wait();
+  wallStakeMotor.move_velocity(3000);
+  pros::delay(2000);
+  wallStakeMotor.move_velocity(0);
+  chassis.pid_drive_set(-20_in, DRIVE_SPEED, true);
+  wallStakeMotor.move_velocity(3000);
+  pros::delay(1000);
+  wallStakeMotor.move_velocity(0);
+  chassis.pid_wait();*/
+
+  
+
+  /*
   chassis.pid_drive_set(10_in, DRIVE_SPEED, true);
   chassis.pid_wait();
   chassis.pid_drive_set(-30_in, DRIVE_SPEED, true);
@@ -242,6 +290,5 @@ void blue_Right_Side() {
   
   pros::delay(3000);
   chassis.pid_wait();
+  */
 
-
-}

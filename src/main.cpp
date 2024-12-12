@@ -3,13 +3,35 @@
 // Chassis constructor
 ez::Drive chassis(
     // These are your drive motors, the first motor is used for sensing!
-    {-1, -2, 3},     // Left Chassis Ports (negative port will reverse it!)
-    {1l, -12, 13},  // Right Chassis Ports (negative port will reverse it!)
+    {11, -12, -13},     // Left Chassis Ports (negative port will reverse it!)
+    {-1, 14, 2},  // Right Chassis Ports (negative port will reverse it!)
 
-    7,      // IMU Port
+    10,      // IMU Port
     2.75,  // Wheel Diameter (Remember, 4" wheels without screw holes are actually 4.125!)
     480);   // Wheel RPM
+  
+void BlueColorSensor_task(){
+  while (true) { // Infinite loop to continuously check the color sensor
+    OP.set_led_pwm(100);
+    // Get the detected color hue from the color sensor
+    int hue = OP.get_hue();
 
+    // Check if the detected color is red (typical red hue is around 8 degrees)
+    if (hue >= 0 && hue <= 8){
+      pros::delay(50); // Small delay before activating piston
+      intakeMotor.move(0);// Activates the color sorter piston for red
+      pros::delay(800); // Delay to keep sorter active for a longer duration
+      intakeMotor.move_velocity(3000);// Activates the color sorter piston for red
+      
+    }
+    else{ // If the color is neither red nor blue, deactivate the color sorter piston
+      Color_sorter.set_value(0);
+    }
+
+    // Small delay to prevent overwhelming the CPU with constant checks
+    pros::delay(20);
+    }
+}
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -29,7 +51,7 @@ void initialize() {
 
   // Autonomous Selector using LLEMU
   ez::as::auton_selector.autons_add({
-      Auton(" ", blue_Right_Side)
+      Auton(" ", blue_Right_Side),
       /*Auton("Example Turn\n\nTurn 3 times.", turn_example),
       Auton("Drive and Turn\n\nDrive forward, turn, come back. ", drive_and_turn),
       Auton("Drive and Turn\n\nSlow down during drive.", wait_until_change_speed),
@@ -38,11 +60,11 @@ void initialize() {
       Auton("Combine all 3 movements", combining_movements),
       Auton("Interference\n\nAfter driving forward, robot performs differently if interfered or not.", interfered_example),
   */
-  });
+    });
   
   // Initialize chassis and auton selector
   chassis.initialize();
-  ez::as::initialize();
+  ez::as::initialize(); 
   master.rumble(".");
 }
 
@@ -79,40 +101,14 @@ void competition_initialize() {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void BlueColorSensor_task(){
-    
-  while (true) { // Infinite loop to continuously check the color sensor
 
-    // Get the detected color hue from the color sensor
-    int hue = OP.get_hue();
-
-    // Check if the detected color is blue (typical blue hue is around 210 degrees)
-    if (hue > 180 && hue < 240) {
-      Color_sorter.set_value(0);  // Deactivate Color Sorter piston for blue
-      pros::delay(50); // Delay to allow processing before checking again
-    }
-    // Check if the detected color is red (typical red hue is around 8 degrees)
-    else if (hue >= 0 && hue <= 20){
-      pros::delay(50); // Small delay before activating piston
-      Color_sorter.set_value(1); // Activates the color sorter piston for red
-      pros::delay(800); // Delay to keep sorter active for a longer duration
-      
-    }
-    else{ // If the color is neither red nor blue, deactivate the color sorter piston
-      Color_sorter.set_value(0);
-    }
-
-    // Small delay to prevent overwhelming the CPU with constant checks
-    pros::delay(20);
-    }
-}
 
 void autonomous() {
   chassis.pid_targets_reset();                // Resets PID targets to 0
   chassis.drive_imu_reset();                  // Reset gyro position to 0
   chassis.drive_sensor_reset();               // Reset drive sensors to 0
-  chassis.drive_brake_set(MOTOR_BRAKE_HOLD);  // Set motors to hold.  This helps autonomous consistency
-  pros::Task color(BlueColorSensor_task);
+  chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
+  //Set motors to hold.  This helps autonomous consistency
   ez::as::auton_selector.selected_auton_call();  // Calls selected auton from autonomous selector
 }
 
@@ -143,9 +139,9 @@ bool buttonPressed3 = false; // IGNORE, logic variable
 void opcontrol() {
   // This is preference to what you like to drive on
   pros::motor_brake_mode_e_t driver_preference_brake = MOTOR_BRAKE_COAST;
-  pros::Task color(BlueColorSensor_task);
   chassis.drive_brake_set(driver_preference_brake);
-  OP.set_led_pwm(100);
+
+  pros::Task colorTask(BlueColorSensor_task);
 
   while (true) {
     bool buttonX = master.get_digital(DIGITAL_X);
@@ -156,7 +152,7 @@ void opcontrol() {
     }
     else if (!buttonX) buttonPressed = false;
 
-    bool buttonY = master.get_digital(DIGITAL_Y);
+    bool buttonY = master.get_digital(DIGITAL_L1);
     //Toggle Logic
     if (buttonY && !buttonPressed2){
       buttonPressed2 = true; 
@@ -207,21 +203,26 @@ void opcontrol() {
     {
       intakeMotor.move(0);
     }
-    if (master.get_digital(DIGITAL_L2)) { // Check if button R1 is pressed
 
-      wallStakeMotor.move_velocity(3000); // Set intake motor to full speed forward
+    if (master.get_digital_new_press(DIGITAL_L1)) { // Check if button R1 is pressed
+      if(wallStakeToggleEnabled){
+        // Do another thing
+        wallStake.move_absolute(1500,2000);
+      }
+      else{
+        
+        wallStake.move_absolute(400,2000);
+
+      }
 
     } 
-    else if (master.get_digital(DIGITAL_L1)) { // Check if button R2 is pressed
+    else if (master.get_digital_new_press(DIGITAL_L2)) { // Check if button R2 is pressed
 
-      wallStakeMotor.move_velocity(-3000); // Set intake motor to full speed backward
+        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
+        wallStake.move_absolute(5,-1000);
 
     } 
     
-    else
-    {
-      wallStakeMotor.move(0);
-    }
 
     if(clampToggleEnabled){
       // Do another thing
@@ -230,18 +231,6 @@ void opcontrol() {
     else{
       // Do initial thing
       Clamper.set_value(0);
-    }
-
-    if(wallStakeToggleEnabled){
-      // Do another thing
-      wallStakePiston1.set_value(0);
-      wallStakePiston2.set_value(0);
-
-    }
-    else{
-      // Do initial thing
-      wallStakePiston1.set_value(1);
-      wallStakePiston2.set_value(1);
     }
 
     if(rachetToggleEnabled){
@@ -254,10 +243,10 @@ void opcontrol() {
     }
 
 
-    chassis.opcontrol_tank();  // Tank control
-    // chassis.opcontrol_arcade_standard(ez::SPLIT);   // Standard split arcade
-    // chassis.opcontrol_arcade_standard(ez::SINGLE);  // Standard single arcade
-    // chassis.opcontrol_arcade_flipped(ez::SPLIT);    // Flipped split arcade
+    //chassis.opcontrol_tank();  // Tank control
+     chassis.opcontrol_arcade_standard(ez::SPLIT);   // Standard split arcade
+    //chassis.opcontrol_arcade_standard(ez::SINGLE);  // Standard single arcade
+     //chassis.opcontrol_arcade_flipped(ez::SPLIT);    // Flipped split arcade
     // chassis.opcontrol_arcade_flipped(ez::SINGLE);   // Flipped single arcade
 
     // . . .

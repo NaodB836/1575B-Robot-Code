@@ -13,5 +13,11 @@ void motion_chaining();
 void combining_movements();
 void interfered_example();
 void blue_Right_Side();
-
+void blue_Left_Side();
+void red_Right_Side();
+void red_Left_Side();
+void elimsAutoBlueRight();
+void elimsAutoRedLeft();
+void skillsAuto();
+void redAutoRightElims();
 void default_constants();

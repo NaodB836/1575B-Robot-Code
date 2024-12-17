@@ -17,15 +17,25 @@ void BlueColorSensor_task(){
     int hue = OP.get_hue();
 
     // Check if the detected color is red (typical red hue is around 8 degrees)
-    if (hue >= 0 && hue <= 8){
-      pros::delay(50); // Small delay before activating piston
+    if (hue >= 0 && hue <= 13){
+      pros::delay(125); // Small delay before activating piston
       intakeMotor.move(0);// Activates the color sorter piston for red
-      pros::delay(800); // Delay to keep sorter active for a longer duration
-      intakeMotor.move_velocity(3000);// Activates the color sorter piston for red
-      
+      pros::delay(500);
     }
-    else{ // If the color is neither red nor blue, deactivate the color sorter piston
-      Color_sorter.set_value(0);
+    else{
+      if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
+
+      intakeMotor.move_velocity(3000); // Set intake motor to full speed forward
+
+    } 
+    else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
+
+      intakeMotor.move_velocity(-3000); // Set intake motor to full speed backward
+
+    } 
+    else{
+      intakeMotor.move(0);
+    }
     }
 
     // Small delay to prevent overwhelming the CPU with constant checks
@@ -51,7 +61,7 @@ void initialize() {
 
   // Autonomous Selector using LLEMU
   ez::as::auton_selector.autons_add({
-      Auton(" ", blue_Right_Side),
+      Auton(" ", drive_example),
       /*Auton("Example Turn\n\nTurn 3 times.", turn_example),
       Auton("Drive and Turn\n\nDrive forward, turn, come back. ", drive_and_turn),
       Auton("Drive and Turn\n\nSlow down during drive.", wait_until_change_speed),
@@ -109,6 +119,7 @@ void autonomous() {
   chassis.drive_sensor_reset();               // Reset drive sensors to 0
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
   //Set motors to hold.  This helps autonomous consistency
+  pros::Task colorTask(BlueColorSensor_task);
   ez::as::auton_selector.selected_auton_call();  // Calls selected auton from autonomous selector
 }
 
@@ -133,11 +144,16 @@ bool buttonPressed = false; // IGNORE, logic variable
 bool wallStakeToggleEnabled = false; // two-choice toggle, so we use bool for wall stake pistons
 bool buttonPressed2 = false; // IGNORE, logic variable
 
-bool rachetToggleEnabled = false; // two-choice toggle, so we use bool for rachet
+bool doinkerToggleEnabled = false; // two-choice toggle, so we use bool for rachet
 bool buttonPressed3 = false; // IGNORE, logic variable
+
+bool intakeToggleEnabled = false; // two-choice toggle, so we use bool for rachet
+bool buttonPressed4 = false; // IGNORE, logic variable
 
 void opcontrol() {
   // This is preference to what you like to drive on
+  wallStake.move_velocity(0);
+  intake.set_value(0);
   pros::motor_brake_mode_e_t driver_preference_brake = MOTOR_BRAKE_COAST;
   chassis.drive_brake_set(driver_preference_brake);
 
@@ -152,21 +168,29 @@ void opcontrol() {
     }
     else if (!buttonX) buttonPressed = false;
 
-    bool buttonY = master.get_digital(DIGITAL_L1);
+    bool buttonL1 = master.get_digital(DIGITAL_L1);
     //Toggle Logic
-    if (buttonY && !buttonPressed2){
+    if (buttonL1 && !buttonPressed2){
       buttonPressed2 = true; 
       wallStakeToggleEnabled = !wallStakeToggleEnabled;
     }
-    else if (!buttonY) buttonPressed2 = false;
+    else if (!buttonL1) buttonPressed2 = false;
 
     bool buttonB = master.get_digital(DIGITAL_B);
     //Toggle Logic
     if (buttonB && !buttonPressed3){
       buttonPressed3 = true; 
-      rachetToggleEnabled = !rachetToggleEnabled;
+      doinkerToggleEnabled = !doinkerToggleEnabled;
     }
     else if (!buttonB) buttonPressed3 = false;
+
+    bool buttonY = master.get_digital(DIGITAL_Y);
+    //Toggle Logic
+    if (buttonY && !buttonPressed4){
+      buttonPressed4 = true; 
+      intakeToggleEnabled = !intakeToggleEnabled;
+    }
+    else if (!buttonY) buttonPressed4 = false;
     // PID Tuner
     // After you find values that you're happy with, you'll have to set them in auton.cpp
     if (!pros::competition::is_connected()) {
@@ -174,7 +198,7 @@ void opcontrol() {
       //  When enabled:
       //  * use A and Y to increment / decrement the constants
       //  * use the arrow keys to navigate the constants
-      /*if (master.get_digital_new_press(DIGITAL_X))
+      if (master.get_digital_new_press(DIGITAL_X))
         chassis.pid_tuner_toggle();
 
       // Trigger the selected autonomous routine
@@ -184,42 +208,25 @@ void opcontrol() {
       }
 
       chassis.pid_tuner_iterate();  // Allow PID Tuner to iterate
-    }*/
     }
     
-
-    if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
-
-      intakeMotor.move_velocity(3000); // Set intake motor to full speed forward
-
-    } 
-    else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
-
-      intakeMotor.move_velocity(-3000); // Set intake motor to full speed backward
-
-    } 
     
-    else
-    {
-      intakeMotor.move(0);
-    }
-
+    
+    wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
     if (master.get_digital_new_press(DIGITAL_L1)) { // Check if button R1 is pressed
       if(wallStakeToggleEnabled){
         // Do another thing
-        wallStake.move_absolute(1500,2000);
+        wallStake.move_absolute(1900,3000);
       }
       else{
         
-        wallStake.move_absolute(400,2000);
+        wallStake.move_absolute(347,2000);
 
       }
 
     } 
     else if (master.get_digital_new_press(DIGITAL_L2)) { // Check if button R2 is pressed
-
-        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
-        wallStake.move_absolute(5,-1000);
+        wallStake.move_absolute(100,-1000);
 
     } 
     
@@ -233,14 +240,24 @@ void opcontrol() {
       Clamper.set_value(0);
     }
 
-    if(rachetToggleEnabled){
+    if(doinkerToggleEnabled){
       // Do another thing
-      rachet.set_value(1);
+      doinker.set_value(1);
     }
     else{
       // Do initial thing
-      rachet.set_value(0);
+      doinker.set_value(0);
     }
+
+    /*if(intakeToggleEnabled){
+      // Do another thing
+      intake.set_value(1);
+    }
+    else{
+      // Do initial thing
+      intake.set_value(0);
+    
+    }*/
 
 
     //chassis.opcontrol_tank();  // Tank control

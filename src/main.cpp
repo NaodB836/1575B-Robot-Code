@@ -1,59 +1,28 @@
 #include "main.h"
-
 // Chassis constructor
 ez::Drive chassis(
     // These are your drive motors, the first motor is used for sensing!
-    {11, -12, -13},     // Left Chassis Ports (negative port will reverse it!)
-    {-1, 14, 2},  // Right Chassis Ports (negative port will reverse it!)
+    {10, -20, -7},     // Left Chassis Ports (negative port will reverse it!)
+    {-8, 4, 5},  // Right Chassis Ports (negative port will reverse it!)
 
-    10,      // IMU Port
+    2,      // IMU Port
     2.75,  // Wheel Diameter (Remember, 4" wheels without screw holes are actually 4.125!)
-    480);   // Wheel RPM
-  
-void BlueColorSensor_task(){
-  while (true) { // Infinite loop to continuously check the color sensor
-    OP.set_led_pwm(100);
-    // Get the detected color hue from the color sensor
-    int hue = OP.get_hue();
-
-    // Check if the detected color is red (typical red hue is around 8 degrees)
-    if (hue >= 0 && hue <= 13){
-      pros::delay(125); // Small delay before activating piston
-      intakeMotor.move(0);// Activates the color sorter piston for red
-      pros::delay(500);
-    }
-    else{
-      if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
-
-      intakeMotor.move_velocity(3000); // Set intake motor to full speed forward
-
-    } 
-    else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
-
-      intakeMotor.move_velocity(-3000); // Set intake motor to full speed backward
-
-    } 
-    else{
-      intakeMotor.move(0);
-    }
-    }
-
-    // Small delay to prevent overwhelming the CPU with constant checks
-    pros::delay(20);
-    }
-}
+    450);   // Wheel RPM
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
+
+
+
 void initialize() {
-  pros::delay(100);  // Stop the user from doing anything while legacy ports configure
+  pros::delay(500);  // Stop the user from doing anything while legacy ports configure
 
   // Configure your chassis controls
   chassis.opcontrol_curve_buttons_toggle(true);  // Enables modifying the controller curve with buttons on the joysticks
-  chassis.opcontrol_drive_activebrake_set(0);    // Sets the active brake kP. We recommend ~2.  0 will disable.
+  chassis.opcontrol_drive_activebrake_set(2);    // Sets the active brake kP. We recommend ~2.  0 will disable.
   chassis.opcontrol_curve_default_set(0, 0);     // Defaults for curve. If using tank, only the first parameter is used. (Comment this line out if you have an SD card!)
 
   // Set the drive to your own constants from autons.cpp!
@@ -61,10 +30,10 @@ void initialize() {
 
   // Autonomous Selector using LLEMU
   ez::as::auton_selector.autons_add({
-      Auton(" ", drive_example),
-      /*Auton("Example Turn\n\nTurn 3 times.", turn_example),
-      Auton("Drive and Turn\n\nDrive forward, turn, come back. ", drive_and_turn),
-      Auton("Drive and Turn\n\nSlow down during drive.", wait_until_change_speed),
+      Auton("Skills Auto", skillsAuto),
+      Auton(" Right Side Auton AWP", red_Right_Side),
+      Auton(" Left Side Auton AWP", blue_Left_Side),
+     /* Auton("Drive and Turn\n\nSlow down during drive.", wait_until_change_speed),
       Auton("Swing Example\n\nSwing in an 'S' curve", swing_example),
       Auton("Motion Chaining\n\nDrive forward, turn, and come back, but blend everything together :D", motion_chaining),
       Auton("Combine all 3 movements", combining_movements),
@@ -76,6 +45,7 @@ void initialize() {
   chassis.initialize();
   ez::as::initialize(); 
   master.rumble(".");
+
 }
 
 /**
@@ -119,7 +89,7 @@ void autonomous() {
   chassis.drive_sensor_reset();               // Reset drive sensors to 0
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
   //Set motors to hold.  This helps autonomous consistency
-  pros::Task colorTask(BlueColorSensor_task);
+  // pros::Task colorTask(BlueColorSensor_task);
   ez::as::auton_selector.selected_auton_call();  // Calls selected auton from autonomous selector
 }
 
@@ -151,22 +121,18 @@ bool intakeToggleEnabled = false; // two-choice toggle, so we use bool for rache
 bool buttonPressed4 = false; // IGNORE, logic variable
 
 void opcontrol() {
-  // This is preference to what you like to drive on
-  wallStake.move_velocity(0);
-  intake.set_value(0);
+  intake.set_value(1);
   pros::motor_brake_mode_e_t driver_preference_brake = MOTOR_BRAKE_COAST;
   chassis.drive_brake_set(driver_preference_brake);
 
-  pros::Task colorTask(BlueColorSensor_task);
-
   while (true) {
-    bool buttonX = master.get_digital(DIGITAL_X);
+    bool buttonY = master.get_digital(DIGITAL_Y);
     //Toggle Logic
-    if (buttonX && !buttonPressed){
+    if (buttonY && !buttonPressed){
       buttonPressed = true; 
       clampToggleEnabled = !clampToggleEnabled;
     }
-    else if (!buttonX) buttonPressed = false;
+    else if (!buttonY) buttonPressed = false;
 
     bool buttonL1 = master.get_digital(DIGITAL_L1);
     //Toggle Logic
@@ -176,24 +142,24 @@ void opcontrol() {
     }
     else if (!buttonL1) buttonPressed2 = false;
 
-    bool buttonB = master.get_digital(DIGITAL_B);
+    bool buttonRight = master.get_digital(DIGITAL_RIGHT);
     //Toggle Logic
-    if (buttonB && !buttonPressed3){
+    if (buttonRight && !buttonPressed3){
       buttonPressed3 = true; 
       doinkerToggleEnabled = !doinkerToggleEnabled;
     }
-    else if (!buttonB) buttonPressed3 = false;
+    else if (!buttonRight) buttonPressed3 = false;
 
-    bool buttonY = master.get_digital(DIGITAL_Y);
+    bool buttonX = master.get_digital(DIGITAL_Y);
     //Toggle Logic
-    if (buttonY && !buttonPressed4){
+    if (buttonX && !buttonPressed4){
       buttonPressed4 = true; 
       intakeToggleEnabled = !intakeToggleEnabled;
     }
-    else if (!buttonY) buttonPressed4 = false;
+    else if (!buttonX) buttonPressed4 = false;
     // PID Tuner
     // After you find values that you're happy with, you'll have to set them in auton.cpp
-    if (!pros::competition::is_connected()) {
+    /*if (!pros::competition::is_connected()) {
       // Enable / Disable PID Tuner
       //  When enabled:
       //  * use A and Y to increment / decrement the constants
@@ -208,28 +174,45 @@ void opcontrol() {
       }
 
       chassis.pid_tuner_iterate();  // Allow PID Tuner to iterate
-    }
+    }*/
     
-    
+    if (master.get_digital(DIGITAL_B) && master.get_digital(DIGITAL_DOWN)) {
+        autonomous();
+        chassis.drive_brake_set(driver_preference_brake);
+      }
     
     wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
     if (master.get_digital_new_press(DIGITAL_L1)) { // Check if button R1 is pressed
       if(wallStakeToggleEnabled){
         // Do another thing
         wallStake.move_absolute(1900,3000);
+        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
       }
       else{
         
         wallStake.move_absolute(347,2000);
-
+        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
       }
 
     } 
     else if (master.get_digital_new_press(DIGITAL_L2)) { // Check if button R2 is pressed
         wallStake.move_absolute(100,-1000);
+        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
 
     } 
+    if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
+            intakeMotor.move(127);            
+        }    
+        else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
+
+          intakeMotor.move(-127); // Set intake motor to full speed backward
+
+        } 
+        else{
+          intakeMotor.move(0);      
+        }
     
+
 
     if(clampToggleEnabled){
       // Do another thing

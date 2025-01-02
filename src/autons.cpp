@@ -30,6 +30,98 @@ void default_constants() {
   chassis.slew_drive_constants_set(7_in, 80);
 }
 
+/*void antiJam(){
+    if(intakeMotor.get_actual_velocity() == 0){
+            intakeMotor.move(-127);
+            pros::delay(500);
+    }
+    pros::delay(20);
+    }*/
+  
+
+int Test = 0;
+void Anti_Jam(){
+ while (true) {
+        // Check if the R2 button is pressed
+        if (Test == 1) {
+            // Move the intake
+            intakeMotor.move(127);
+            pros::delay(50);
+            // Check if the voltage of the intake equals 0
+            if (intakeMotor.get_actual_velocity() == 0) {
+                // Reverse the intake for 200 ms
+                intakeMotor.move(-127);
+                pros::delay(220);
+                // Resume normal intake operation
+                intakeMotor.move(127);
+            }
+        }
+        else if(Test ==2){
+          intakeMotor.move(-127);
+        }
+        else if(Test == 0) {
+            // Stop the intake if R2 is not pressed
+            intakeMotor.move(0);
+        }
+        pros::delay(20); // Delay to prevent excessive CPU usage
+  }
+}
+inline pros::Task antiJammer(Anti_Jam);
+int IntakeToggleV = -1;         // Tracks the forward toggle state (1 for on, -1 for off)
+int IntakeReverseToggleV = -1;   // Tracks the reverse toggle state (1 for reverse on, -1 for off)
+void IntakeToggle() {
+// If `IntakeToggleV` is 1, the intake motors will run at full speed
+// If `IntakeToggleV` is -1, the intake motors will stop
+  // Toggle the `IntakeToggleV` state each time this function is called
+  IntakeToggleV = -1 * IntakeToggleV;
+  // If IntakeToggleV is 1, move both intake motors forward at full speed
+  if (IntakeToggleV == 1) {
+    intakeMotor.move(127);      // Move the first intake motor at full speed
+    Test = 1;
+  }
+  // This condition attempts to check if both toggles (forward and reverse) are active,
+  // but `IntakeToggleV == 1` is redundant here since it was already checked in the previous `if` condition.
+  // else if (IntakeReverseToggleV == 1 && IntakeToggleV == 1) {
+  //   intakeMotor.move(127);      // Move the first intake motor at full speed
+  // }
+  // If IntakeToggleV is -1, stop both intake motors
+  else {
+    intakeMotor.move(0);        // Stop the first intake motor
+    Test = 0;
+  }
+}
+void BlueColorSensor_task(){
+  while (true) { // Infinite loop to continuously check the color sensor
+      OP.set_led_pwm(100);
+    // Get the detected color hue from the color sensor
+    int hue = OP.get_hue();
+
+    // Check if the detected color is red (typical red hue is around 8 degrees)
+    if (hue >= 5 && hue <= 15){
+      
+      intakeMotor.move(0);// Activates the color sorter piston for red
+      pros::delay(1000);
+      intakeMotor.move(127);
+    }  
+    else{
+        if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
+            intakeMotor.move(127);            
+        }    
+        else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
+
+          intakeMotor.move(-127); // Set intake motor to full speed backward
+
+        } 
+        else{
+          intakeMotor.move(0);      
+        }
+    } 
+
+    // Small delay to prevent overwhelming the CPU with constant checks
+    pros::delay(20);
+    }
+  }
+
 ///
 // Drive Example
 ///
@@ -308,6 +400,89 @@ void redAutoRightElims(){
   wallStake.move_absolute(400,100);*/
 }
 
+void soloSigAWPBlueRight(){
+
+  intake.set_value(1);
+  ringRush.set_value(1);
+  chassis.pid_drive_set(44_in, 90);
+  chassis.pid_wait();
+  pros::delay(100);
+  chassis.pid_drive_set(-20_in, 127);
+  chassis.pid_wait();
+  ringRush.set_value(0);
+  chassis.pid_drive_set(-14_in, 127);
+  chassis.pid_wait();
+  chassis.pid_turn_set(133_deg, TURN_SPEED);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-27_in, 100);
+  chassis.pid_wait();
+  Clamper.set_value(1);
+  pros::delay(500);
+  chassis.pid_turn_set(65_deg, TURN_SPEED);
+  chassis.pid_wait();
+  IntakeToggle();
+  chassis.pid_drive_set(15_in, 70);
+  chassis.pid_wait();
+  pros::delay(1000);
+  IntakeToggle();
+  intakeMotor.move(-127);
+  pros::delay(500);
+  IntakeToggle();
+  chassis.pid_drive_set(15_in, 70);
+  chassis.pid_wait();
+  pros::delay(1000);
+  chassis.pid_drive_set(-15_in, 120);
+  chassis.pid_wait();
+  chassis.pid_turn_set(125_deg, TURN_SPEED);
+  chassis.pid_wait();
+  chassis.pid_drive_set(47_in, 120);
+  chassis.pid_wait();
+  intake.set_value(0);
+  chassis.pid_wait();
+  intake.set_value(1);
+  pros::delay(500);
+  chassis.pid_drive_set(-5_in, 120);
+  chassis.pid_wait();
+  chassis.pid_drive_set(5_in, 120);
+  chassis.pid_wait();
+  pros::delay(500);
+  chassis.pid_drive_set(-15_in, 120);
+  chassis.pid_wait();
+  chassis.pid_turn_set(285_deg, TURN_SPEED);
+  chassis.pid_wait();
+  /*chassis.pid_drive_set(14.5_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  wallStake.move_velocity(2300);
+  pros::delay(550);
+  wallStake.move_velocity(-2300);
+  pros::delay(550);
+  chassis.pid_drive_set(-43_in, 70);
+  wallStake.move_velocity(0);
+  chassis.pid_wait();
+  pros::delay(100);
+  Clamper.set_value(1);
+  pros::delay(100);
+  chassis.pid_wait();
+  chassis.pid_turn_set(-160_deg, TURN_SPEED);
+  chassis.pid_wait();
+  intakeMotor.move(127);
+  chassis.pid_drive_set(19_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  pros::delay(700);
+  chassis.pid_drive_set(-9_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_turn_set(-65_deg, TURN_SPEED);
+  chassis.pid_wait();
+  chassis.pid_drive_set(15_in, 75);
+  chassis.pid_wait();
+  chassis.pid_turn_set(-45_deg, TURN_SPEED);
+  chassis.pid_wait();
+  intakeMotor.move(0);*/
+
+
+
+}
+
 void elimsAutoBlueRight() {
 
   wallStake.move_absolute(600,3000);
@@ -350,6 +525,7 @@ void elimsAutoBlueRight() {
 }
 void blue_Left_Side() {
   
+  intake.set_value(1);
   chassis.pid_drive_set(12_in, DRIVE_SPEED);
   chassis.pid_wait();
   wallStake.move_velocity(2300);
@@ -375,10 +551,10 @@ void blue_Left_Side() {
   chassis.pid_wait();
   chassis.pid_turn_set(-35_deg, TURN_SPEED);
   chassis.pid_wait();
-  intake.set_value(1);
+  intake.set_value(0);
   chassis.pid_drive_set(48_in, DRIVE_SPEED);
   chassis.pid_wait();
-  intake.set_value(0);
+  intake.set_value(1);
   intakeMotor.move_velocity(3000);
   pros::delay(900);
   chassis.pid_drive_set(-25_in, DRIVE_SPEED);
@@ -403,16 +579,17 @@ void red_Right_Side() {
   wallStake.move_velocity(-2300);
   pros::delay(500);
   wallStake.move_velocity(0);
-  chassis.pid_drive_set(-45_in, 60);
+  intake.set_value(1);
+  chassis.pid_drive_set(-25_in, 127);
   chassis.pid_wait();
-  pros::delay(500);
+  pros::delay(100);
   Clamper.set_value(1);
-  pros::delay(500);
+  pros::delay(100);
   chassis.pid_wait();
   chassis.pid_turn_set(-115_deg, 90);
   chassis.pid_wait();
-  chassis.pid_drive_set(23_in, 100);
   intakeMotor.move_velocity(3000);
+  chassis.pid_drive_set(23_in, 100);
   pros::delay(2100);
   intakeMotor.move_velocity(0);
   intakeMotor.move_velocity(-3000);
@@ -421,13 +598,13 @@ void red_Right_Side() {
   chassis.pid_wait();
   chassis.pid_turn_set(35_deg, TURN_SPEED);
   chassis.pid_wait();
-  intake.set_value(1);
-  chassis.pid_drive_set(48_in, DRIVE_SPEED);
+  intake.set_value(0);  
+  chassis.pid_drive_set(40_in, DRIVE_SPEED);
   chassis.pid_wait();
-  intake.set_value(0);
-  intakeMotor.move_velocity(3000);
+  intake.set_value(1);
+  intakeMotor.move_velocity(0);
   pros::delay(900);
-  chassis.pid_drive_set(-25_in, DRIVE_SPEED);
+  chassis.pid_drive_set(-17_in, DRIVE_SPEED);
   pros::delay(50);
   intakeMotor.move_velocity(0);
   intakeMotor.move_velocity(-3000);
@@ -442,93 +619,98 @@ void red_Right_Side() {
 
 void skillsAuto(){
 
+  antiJammer.resume();
   wallStake.move_velocity(2300);
-  pros::delay(500);
+  pros::delay(600);
   wallStake.move_velocity(-2300);
-  pros::delay(500);
+  pros::delay(600);
   wallStake.move_velocity(0);
   chassis.pid_drive_set(-15_in, DRIVE_SPEED);
   chassis.pid_wait();
+  intake.set_value(1);
   chassis.pid_turn_set(90_deg, TURN_SPEED);
   chassis.pid_wait();
-  chassis.pid_drive_set(-22_in, 80);
+  chassis.pid_drive_set(-25_in, 80);
   chassis.pid_wait();
-  pros::delay(500);
-  Clamper.set_value(1);
-  pros::delay(500);
-  chassis.pid_wait();
-  chassis.pid_turn_set(-67_deg, 90);
-  chassis.pid_wait();
-  intakeMotor.move_velocity(3000);
-  chassis.pid_drive_set(28_in, 100);
-  chassis.pid_wait();
-  pros::delay(600);
-  chassis.pid_turn_set(110_deg, 90);
-  chassis.pid_wait();
-  intakeMotor.move_velocity(0);
-  chassis.pid_drive_set(-13_in, 60);
-  chassis.pid_wait();
-  pros::delay(500);
-  Clamper.set_value(0);
-  pros::delay(750);
-  chassis.pid_wait();
-  chassis.pid_drive_set(40_in, 60);
-  chassis.pid_wait();
-  chassis.pid_turn_set(-90_deg, 90);
-  chassis.pid_wait();
-  chassis.pid_drive_set(-48_in, 60);
-  chassis.pid_wait();
-  pros::delay(400);
-  Clamper.set_value(1);
-  pros::delay(400);
-  chassis.pid_wait();
-  chassis.pid_turn_set(67_deg, 90);
-  chassis.pid_wait();
-  intakeMotor.move_velocity(3000);
-  chassis.pid_drive_set(28_in, 100);
-  pros::delay(2600);
-  intakeMotor.move_velocity(0);
-  intakeMotor.move_velocity(-3000);
+  IntakeToggle();
   pros::delay(200);
-  intakeMotor.move_velocity(0);
+  Clamper.set_value(1);
+  pros::delay(200);
+  chassis.pid_turn_set(267_deg, 127);
   chassis.pid_wait();
-  chassis.pid_turn_set(-110_deg, 90);
+  chassis.pid_drive_set(25_in, 70);
   chassis.pid_wait();
-  chassis.pid_drive_set(-12_in, 60);
+  pros::delay(750);
+  chassis.pid_turn_set(272_deg, 127);
   chassis.pid_wait();
-  pros::delay(400);
+  chassis.pid_drive_set(7_in, 70);
+  chassis.pid_wait();
+  pros::delay(750);
+  chassis.pid_turn_set(150_deg, 127);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-13_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  pros::delay(500);
+  intakeMotor.move(0);
   Clamper.set_value(0);
-  pros::delay(400);
-  chassis.pid_wait();
   chassis.pid_drive_set(10_in, DRIVE_SPEED);
   chassis.pid_wait();
-  chassis.pid_turn_set(5_deg, TURN_SPEED);
+  IntakeToggle();
+  chassis.pid_turn_set(270, 127);
   chassis.pid_wait();
-  chassis.pid_drive_set(-10_in, DRIVE_SPEED);
+  chassis.pid_drive_set(-80_in, 100);
   chassis.pid_wait();
-  chassis.pid_turn_set(13_deg, TURN_SPEED);
-  chassis.pid_drive_set(-97_in, DRIVE_SPEED);
-  chassis.pid_wait();
-  pros::delay(400);
+  pros::delay(100);
   Clamper.set_value(1);
-  pros::delay(400);
-  chassis.pid_turn_set(-60_deg, TURN_SPEED);
+  pros::delay(100);
   chassis.pid_wait();
-  chassis.pid_drive_set(-30_in, DRIVE_SPEED);
+  IntakeToggle();
+  chassis.pid_turn_set(90_deg, 127);
   chassis.pid_wait();
-  pros::delay(400);
-  Clamper.set_value(0);
-  pros::delay(400);
-  /*
+  chassis.pid_drive_set(18_in, 65);
+  chassis.pid_wait();
+  pros::delay(750);
+  chassis.pid_turn_set(88_deg, 127);
+  chassis.pid_wait();
+  chassis.pid_drive_set(8_in, 65);
+  chassis.pid_wait();
+  pros::delay(750);
+  chassis.pid_turn_set(-150_deg, 127);
+  chassis.pid_wait();
   chassis.pid_drive_set(-15_in, DRIVE_SPEED);
   chassis.pid_wait();
-  pros::delay(400);
-  Clamper.set_value(1);
-  pros::delay(400);
-  chassis.pid_drive_set(-50_in, DRIVE_SPEED);
-  chassis.pid_wait();
-  pros::delay(400);
+  pros::delay(500);
+  IntakeToggle();
   Clamper.set_value(0);
-  pros::delay(400);*/
+  chassis.pid_drive_set(25_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_turn_set(-180_deg, 127);
+  chassis.pid_wait();
+  IntakeToggle();
+  chassis.pid_drive_set(35_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  IntakeToggle();
+  chassis.pid_turn_set(27_deg, 127);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-70_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  pros::delay(100);
+  Clamper.set_value(1);
+  pros::delay(100);
+  chassis.pid_turn_set(285_deg, 127);
+  chassis.pid_wait();
+  chassis.pid_drive_set(-35_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  Clamper.set_value(0);
+  chassis.pid_drive_set(30_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_turn_set(230_deg, 127);
+  chassis.pid_wait();
+  chassis.pid_drive_set(20_in, DRIVE_SPEED);
+  chassis.pid_wait();
+  chassis.pid_turn_set(270_deg, 127);
+  chassis.pid_wait();
+  
+
 
 }

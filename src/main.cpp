@@ -2,10 +2,10 @@
 // Chassis constructor
 ez::Drive chassis(
     // These are your drive motors, the first motor is used for sensing!
-    {10, -20, -7},     // Left Chassis Ports (negative port will reverse it!)
-    {-8, 4, 5},  // Right Chassis Ports (negative port will reverse it!)
+    {-1, -17, -2},     // Left Chassis Ports (negative port will reverse it!)
+    {20, 15, 14},  // Right Chassis Ports (negative port will reverse it!)
 
-    2,      // IMU Port
+    10,      // IMU Port
     2.75,  // Wheel Diameter (Remember, 4" wheels without screw holes are actually 4.125!)
     450);   // Wheel RPM
 /**
@@ -14,7 +14,6 @@ ez::Drive chassis(
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-
 
 
 void initialize() {
@@ -27,14 +26,14 @@ void initialize() {
 
   // Set the drive to your own constants from autons.cpp!
   default_constants();
-
   // Autonomous Selector using LLEMU
   ez::as::auton_selector.autons_add({
-      Auton("Skills Auto", skillsAuto),
+    
       Auton(" Right Side Auton AWP", red_Right_Side),
-      Auton(" Left Side Auton AWP", blue_Left_Side),
-     /* Auton("Drive and Turn\n\nSlow down during drive.", wait_until_change_speed),
-      Auton("Swing Example\n\nSwing in an 'S' curve", swing_example),
+    Auton(" Left Side Auton AWP", blue_Left_Side),
+    Auton("Skills Auto", skillsAuto),
+      Auton("Sig Auto", soloSigAWPBlueRight),
+      /*Auton("Swing Example\n\nSwing in an 'S' curve", swing_example),
       Auton("Motion Chaining\n\nDrive forward, turn, and come back, but blend everything together :D", motion_chaining),
       Auton("Combine all 3 movements", combining_movements),
       Auton("Interference\n\nAfter driving forward, robot performs differently if interfered or not.", interfered_example),
@@ -45,7 +44,6 @@ void initialize() {
   chassis.initialize();
   ez::as::initialize(); 
   master.rumble(".");
-
 }
 
 /**
@@ -70,6 +68,7 @@ void competition_initialize() {
   // . . .
 }
 
+
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -88,8 +87,6 @@ void autonomous() {
   chassis.drive_imu_reset();                  // Reset gyro position to 0
   chassis.drive_sensor_reset();               // Reset drive sensors to 0
   chassis.drive_brake_set(MOTOR_BRAKE_HOLD);
-  //Set motors to hold.  This helps autonomous consistency
-  // pros::Task colorTask(BlueColorSensor_task);
   ez::as::auton_selector.selected_auton_call();  // Calls selected auton from autonomous selector
 }
 
@@ -121,11 +118,13 @@ bool intakeToggleEnabled = false; // two-choice toggle, so we use bool for rache
 bool buttonPressed4 = false; // IGNORE, logic variable
 
 void opcontrol() {
-  intake.set_value(1);
   pros::motor_brake_mode_e_t driver_preference_brake = MOTOR_BRAKE_COAST;
   chassis.drive_brake_set(driver_preference_brake);
+  wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
+  int lb_angle = 0;
 
   while (true) {
+    master.print(0,0,"val %d", ladyB.get_position());
     bool buttonY = master.get_digital(DIGITAL_Y);
     //Toggle Logic
     if (buttonY && !buttonPressed){
@@ -157,61 +156,47 @@ void opcontrol() {
       intakeToggleEnabled = !intakeToggleEnabled;
     }
     else if (!buttonX) buttonPressed4 = false;
-    // PID Tuner
-    // After you find values that you're happy with, you'll have to set them in auton.cpp
-    /*if (!pros::competition::is_connected()) {
-      // Enable / Disable PID Tuner
-      //  When enabled:
-      //  * use A and Y to increment / decrement the constants
-      //  * use the arrow keys to navigate the constants
-      if (master.get_digital_new_press(DIGITAL_X))
-        chassis.pid_tuner_toggle();
-
-      // Trigger the selected autonomous routine
-      if (master.get_digital(DIGITAL_B) && master.get_digital(DIGITAL_DOWN)) {
-        autonomous();
-        chassis.drive_brake_set(driver_preference_brake);
-      }
-
-      chassis.pid_tuner_iterate();  // Allow PID Tuner to iterate
-    }*/
     
     if (master.get_digital(DIGITAL_B) && master.get_digital(DIGITAL_DOWN)) {
         autonomous();
         chassis.drive_brake_set(driver_preference_brake);
       }
     
-    wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
-    if (master.get_digital_new_press(DIGITAL_L1)) { // Check if button R1 is pressed
-      if(wallStakeToggleEnabled){
-        // Do another thing
-        wallStake.move_absolute(1900,3000);
-        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
-      }
-      else{
-        
-        wallStake.move_absolute(347,2000);
-        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
-      }
-
-    } 
-    else if (master.get_digital_new_press(DIGITAL_L2)) { // Check if button R2 is pressed
-        wallStake.move_absolute(100,-1000);
-        wallStake.set_brake_mode(MOTOR_BRAKE_COAST);
-
-    } 
+  
     if (master.get_digital(DIGITAL_R1)) { // Check if button R1 is pressed
-            intakeMotor.move(127);            
+            intakeMotor.move_velocity(600);
+         
         }    
-        else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed
-
-          intakeMotor.move(-127); // Set intake motor to full speed backward
+        else if (master.get_digital(DIGITAL_R2)) { // Check if button R2 is pressed 
+          intakeMotor.move_velocity(-600); // Set intake motor to full speed backward
 
         } 
         else{
-          intakeMotor.move(0);      
+          intakeMotor.move_velocity(0);      
         }
+    wallStake.set_brake_mode_all(MOTOR_BRAKE_HOLD);
+    if(master.get_digital(DIGITAL_L1))
+    {
+      if(wallStakeToggleEnabled){
+      
+      wallStake.move_absolute(234, 600);
+
+    }
+    else{
+
+      wallStake.move_absolute(1400, 600);
     
+    }
+      
+    }
+    else if(master.get_digital(DIGITAL_L2))
+    {
+      wallStake.move_velocity(-600);
+    }
+    else
+    {
+      wallStake.move_velocity(0);
+    }
 
 
     if(clampToggleEnabled){
@@ -230,6 +215,9 @@ void opcontrol() {
     else{
       // Do initial thing
       doinker.set_value(0);
+    }
+    if(master.get_digital(DIGITAL_LEFT)){
+      intake.set_value(0);
     }
 
     /*if(intakeToggleEnabled){
